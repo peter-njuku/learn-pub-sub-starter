@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -37,10 +35,40 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not subscribe to pause: %v", err)
 	}
-	fmt.Printf("Queue %v declared and bound!", queue.Name)
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
-	<-sigchan
-	fmt.Println("\nRabbitMQ connection closed.")
+	gameState := gamelogic.NewGameState(username)
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+		switch words[0] {
+		case "spawn":
+			fmt.Println("Publishing spawn command")
+			err = gameState.CommandSpawn(words)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			fmt.Println("Spawn command published successfully")
+		case "move":
+			fmt.Println("Publishing move command")
+			_, err := gameState.CommandMove(words)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			fmt.Println("Move command published successfully")
+		case "status":
+			gameState.CommandStatus()
+		case "help":
+			gamelogic.PrintClientHelp()
+		case "quit":
+			gamelogic.PrintQuit()
+			return
+		default:
+			fmt.Println("Unknown command")
+		}
+	}
 }
