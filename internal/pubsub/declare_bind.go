@@ -29,13 +29,18 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, queu
 	if err != nil {
 		return nil, amqp.Queue{}, err
 	}
+
+	args := amqp.Table{
+		"x-dead-letter-exchange": routing.ExchangePerilDeadLetter,
+	}
+
 	queue, err := ch.QueueDeclare(
 		queueName,
 		queueType == SimpleQueueDurable,
 		queueType != SimpleQueueDurable,
 		queueType != SimpleQueueDurable,
 		false,
-		nil,
+		args,
 	)
 	if err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("Failed to declare channel: %w", err)
