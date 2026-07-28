@@ -4,17 +4,20 @@ import (
 	"fmt"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 )
 
-func handlerMove(gs *gamelogic.GameState) func(gamelogic.ArmyMove) {
-	return func(am gamelogic.ArmyMove) {
+func handlerMove(gs *gamelogic.GameState) func(gamelogic.ArmyMove) pubsub.AckType {
+	return func(am gamelogic.ArmyMove) pubsub.AckType {
 		defer fmt.Print("> ")
 		outcome := gs.HandleMove(am)
 		switch outcome {
-		case gamelogic.MoveOutcomeSamePlayer:
-			fmt.Println("Detected our own move")
 		case gamelogic.MoveOutcomeMakeWar:
-			fmt.Printf("War declared by %s at %s!\n", am.Player.Username, am.ToLocation)
+			return pubsub.Ack
+		case gamelogic.MoveOutcomeSamePlayer:
+			return pubsub.NackDiscard
+		default:
+			return pubsub.NackDiscard
 		}
 	}
 }
