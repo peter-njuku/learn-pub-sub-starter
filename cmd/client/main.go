@@ -20,6 +20,12 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connection successful")
 
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer ch.Close()
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Fatal(err)
@@ -46,6 +52,21 @@ func main() {
 		pubsub.SimpleQueueTransient,
 		handlerPause(gameState),
 	)
+	if err != nil {
+		log.Fatalf("Pausing failed: %v", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username),
+		fmt.Sprintf("%s.*", routing.ArmyMovesPrefix),
+		pubsub.SimpleQueueTransient,
+		handlerMove(gameState),
+	)
+	if err != nil {
+		log.Fatalf("Moving failed: %v", err)
+	}
 
 	for {
 		words := gamelogic.GetInput()
@@ -61,21 +82,36 @@ func main() {
 				continue
 			}
 			fmt.Println("Spawn command published successfully")
+
 		case "move":
 			fmt.Println("Publishing move command")
-			_, err := gameState.CommandMove(words)
+			move, err := gameState.CommandMove(words)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
+			err = pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilTopic,
+				fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, move.Player.Username),
+				move,
+			)
+			if err != nil {
+				fmt.Printf("Error publishing move: %v\n", err)
+				continue
+			}
 			fmt.Println("Move command published successfully")
+
 		case "status":
 			gameState.CommandStatus()
+
 		case "help":
 			gamelogic.PrintClientHelp()
+
 		case "quit":
 			gamelogic.PrintQuit()
 			return
+
 		default:
 			fmt.Println("Unknown command")
 		}
