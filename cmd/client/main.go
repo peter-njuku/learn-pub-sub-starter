@@ -53,7 +53,7 @@ func main() {
 		handlerPause(gameState),
 	)
 	if err != nil {
-		log.Fatalf("Pausing failed: %v", err)
+		log.Fatalf("Pausing failed: %v\n", err)
 	}
 
 	err = pubsub.SubscribeJSON(
@@ -62,10 +62,22 @@ func main() {
 		fmt.Sprintf("%s.%s", routing.ArmyMovesPrefix, username),
 		fmt.Sprintf("%s.*", routing.ArmyMovesPrefix),
 		pubsub.SimpleQueueTransient,
-		handlerMove(gameState),
+		handlerMove(gameState, ch),
 	)
 	if err != nil {
-		log.Fatalf("Moving failed: %v", err)
+		log.Fatalf("Moving failed: %v\n", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		fmt.Sprintf("%s.%s", routing.WarRecognitionsPrefix, gameState.GetPlayerSnap().Username),
+		fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix),
+		pubsub.SimpleQueueTransient,
+		handlerWar(gameState),
+	)
+	if err != nil {
+		log.Fatalf("Could not subscribe to war recognition: %v\n", err)
 	}
 
 	for {
