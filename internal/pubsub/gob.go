@@ -47,6 +47,11 @@ func subscribe[T any](conn *amqp.Connection, exchange, queueName, key string, si
 		return err
 	}
 
+	err = channel.Qos(10, 0, false)
+	if err != nil {
+		return fmt.Errorf("Could not set Qos: %w", err)
+	}
+
 	msgs, err := channel.Consume(queue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("could not consume queue: %w", err)
@@ -79,13 +84,16 @@ func subscribe[T any](conn *amqp.Connection, exchange, queueName, key string, si
 
 func SubscribeGob[T any](conn *amqp.Connection, exchange, queueName, key string, queueType SimpleQueueType, handler func(T) AckType) error {
 	gobUnmarshaller := func(data []byte) (T, error) {
-		var val T
 		buf := bytes.NewBuffer(data)
+
+		val := new(T)
+
 		decoder := gob.NewDecoder(buf)
-		if err := decoder.Decode(&val); err != nil {
-			return val, err
+		if err := decoder.Decode(val); err != nil {
+			var zero T
+			return zero, err
 		}
-		return val, nil
+		return *val, nil
 	}
 	return subscribe(conn, exchange, queueName, key, queueType, handler, gobUnmarshaller)
 }
