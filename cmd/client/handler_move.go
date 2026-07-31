@@ -14,6 +14,8 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyM
 		defer fmt.Print("> ")
 		outcome := gs.HandleMove(am)
 		switch outcome {
+		case gamelogic.MoveOutComeSafe:
+			return pubsub.Ack
 		case gamelogic.MoveOutcomeMakeWar:
 			routingKey := fmt.Sprintf("%s.%s", routing.WarRecognitionsPrefix, gs.GetPlayerSnap().Username)
 			warMsg := gamelogic.RecognitionOfWar{

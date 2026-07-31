@@ -73,8 +73,8 @@ func main() {
 		routing.ExchangePerilTopic,
 		fmt.Sprintf("%s.%s", routing.WarRecognitionsPrefix, gameState.GetPlayerSnap().Username),
 		fmt.Sprintf("%s.*", routing.WarRecognitionsPrefix),
-		pubsub.SimpleQueueTransient,
-		handlerWar(gameState),
+		pubsub.SimpleQueueDurable,
+		handlerWar(gameState, ch),
 	)
 	if err != nil {
 		log.Fatalf("Could not subscribe to war recognition: %v\n", err)
