@@ -49,7 +49,7 @@ func subscribe[T any](conn *amqp.Connection, exchange, queueName, key string, si
 
 	err = channel.Qos(10, 0, false)
 	if err != nil {
-		return fmt.Errorf("Could not set Qos: %w", err)
+		return fmt.Errorf("could not set Qos: %w", err)
 	}
 
 	msgs, err := channel.Consume(queue.Name, "", false, false, false, false, nil)
